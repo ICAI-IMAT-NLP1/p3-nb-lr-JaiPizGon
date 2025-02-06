@@ -18,7 +18,8 @@ jobs:
       uses: classroom-resources/autograding-python-grader@v1
       with:
         timeout: 10
-        setup-command: 'sudo -H pip install pytest torch string re'
+        setup-command: 'pip --force-reinstall --no-cache-dir install pytest torch string re'
+        run-command: 'pytest .'
     - name: Autograding Reporter
       uses: classroom-resources/autograding-grading-reporter@v1
       env:
