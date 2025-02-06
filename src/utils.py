@@ -6,13 +6,13 @@ import string
 
 def remove_punctuations(input_col):
     """To remove all the punctuations present in the text.Input the text column"""
-    table = str.maketrans("", "", string.punctuation)
+    table: str = str.maketrans("", "", string.punctuation)
     return input_col.translate(table)
 
 
 # Tokenizes a input_string. Takes a input_string (a sentence), splits out punctuation and contractions, and returns a list of
 # strings, with each input_string being a token.
-def tokenize(input_string):
+def tokenize(input_string: str) -> List[str]:
     input_string = remove_punctuations(input_string)
     input_string = re.sub(r"[^A-Za-z0-9(),.!?\'`\-\"]", " ", input_string)
     input_string = re.sub(r"\'s", " 's", input_string)
@@ -44,8 +44,8 @@ class SentimentExample:
     """
 
     def __init__(self, words: List[str], label: int):
-        self._words = words
-        self._label = label
+        self._words: List[str] = words
+        self._label: int = label
 
     def __repr__(self) -> str:
         if self.label is not None:
@@ -79,7 +79,9 @@ class SentimentExample:
         raise NotImplemented
 
 
-def evaluate_classification(predictions: torch.Tensor, labels: torch.Tensor) -> Dict[str, float]:
+def evaluate_classification(
+    predictions: torch.Tensor, labels: torch.Tensor
+) -> Dict[str, float]:
     """
     Evaluate classification metrics including accuracy, precision, recall, and F1-score.
 
@@ -90,6 +92,40 @@ def evaluate_classification(predictions: torch.Tensor, labels: torch.Tensor) -> 
     Returns:
         dict: A dictionary containing the calculated metrics.
     """
-    metrics: Dict[str, float] = None
+    tp: torch.Tensor = torch.sum((predictions == 1) & (labels == 1)).item()
+    tn: torch.Tensor = torch.sum((predictions == 0) & (labels == 0)).item()
+    fp: torch.Tensor = torch.sum((predictions == 1) & (labels == 0)).item()
+    fn: torch.Tensor = torch.sum((predictions == 0) & (labels == 1)).item()
 
-    return metrics
+    accuracy: torch.Tensor = (tp + tn) / (tp + tn + fp + fn)
+    precision: torch.Tensor = tp / (tp + fp) if tp + fp > 0 else 0
+    recall: torch.Tensor = tp / (tp + fn) if tp + fn > 0 else 0
+    f1_score: torch.Tensor = (
+        2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
+    )
+
+    return {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1_score,
+    }
+
+
+def get_word_weight(logistic_regression, vocab: Dict[str, int], word: str) -> float:
+    """
+    Retrieve the weight associated with a specific word in a Logistic Regression model.
+
+    Args:
+        logistic_regression (LogisticRegression): The trained logistic regression model.
+        vocab (Dict[str, int]): The vocabulary mapping words to indices.
+        word (str): The word for which to retrieve the weight.
+
+    Returns:
+        float: The weight associated with the given word.
+    """
+    if word not in vocab:
+        raise ValueError(f"The word '{word}' is not in the vocabulary.")
+
+    word_index: int = vocab[word] + 1
+    return logistic_regression.weights[word_index].item()
